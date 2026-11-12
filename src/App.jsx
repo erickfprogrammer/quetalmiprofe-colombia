@@ -36,7 +36,7 @@ const cardScore=(p,ratings)=>{const r=ratings.filter(x=>x.professor_id===p.id);r
 function ProfessorCard({professor,ratings,onClick}){const s=cardScore(professor,ratings);return <button className="prof-card" onClick={onClick}><div className="prof-top"><Initial name={professor.name}/><div className="prof-identity"><h3>{professor.name}</h3><p><School size={13}/>{professor.university_name}</p></div><ChevronRight size={19} className="prof-chevron"/></div><div className="prof-divider"/><div className="prof-bottom"><div><Score value={s.rating}/><span>{s.count===1?"1 opinión":s.count+" opiniones"}</span></div><div className="recommend"><ThumbsUp size={15}/>{s.count?s.recommend+"% recomiendan":"Sin calificar"}</div></div>{professor.campus&&<div className="campus"><MapPin size={12}/>{professor.campus}</div>}</button>}
 export default function App(){
  const [user,setUser]=useState(null),[inPlatform,setInPlatform]=useState(()=>window.location.pathname.startsWith("/plataforma")),[boot,setBoot]=useState(true),[teachers,setTeachers]=useState([]),[ratings,setRatings]=useState([]),[loading,setLoading]=useState(false),[q,setQ]=useState(""),[tab,setTab]=useState("profesores"),[uni,setUni]=useState(""),[showAllUnis,setShowAllUnis]=useState(false),[sort,setSort]=useState("relevancia"),[modal,setModal]=useState(""),[selected,setSelected]=useState(null),[authMode,setAuthMode]=useState("login"),[feedback,setFeedback]=useState(null),[busy,setBusy]=useState(false),[menu,setMenu]=useState(false),[adminData,setAdminData]=useState({professors:[],reviews:[],reports:[],students:[]}),[adminTab,setAdminTab]=useState("professors");
- const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[registerEmailMode,setRegisterEmailMode]=useState("institutional"),[institutionalEmail,setInstitutionalEmail]=useState(""),[pendingEmail,setPendingEmail]=useState(""),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
+ const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[registerEmailMode,setRegisterEmailMode]=useState("institutional"),[institutionalEmail,setInstitutionalEmail]=useState(""),[academicCode,setAcademicCode]=useState(""),[academicSent,setAcademicSent]=useState(false),[academicMessage,setAcademicMessage]=useState(""),[pendingEmail,setPendingEmail]=useState(""),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
  const admin=user?.app_metadata?.role==="admin"||user?.app_metadata?.role==="moderator";
  const sortedUnis=useMemo(()=>[...universities].sort((a,b)=>a.name.localeCompare(b.name,"es")) ,[]);
  const uniOptions=useMemo(()=>sortedUnis.filter(x=>normalize(x.name+" "+x.city).includes(normalize(uniTerm))).slice(0,8),[uniTerm,sortedUnis]);
@@ -117,25 +117,45 @@ export default function App(){
  setBusy(false);if(error)return toast(cleanError(error),"error");
  setStudentProfile(data);setProfileChecked(true);close();toast(institutionVerified(data)?"Universidad guardada y correo institucional confirmado.":"Universidad guardada. Confirma tu correo institucional para poder publicar; tus opiniones seguirán siendo públicas sin tu identidad.");
 }
- async function requestInstitutionalEmailVerification(e){
- e.preventDefault();
- if(!db||!user||!studentProfile)return;
- const email=institutionalEmail.trim().toLowerCase();
- const valid=matchUniversityEmail(email,studentProfile.university_code);
- if(!valid)return toast("El correo no pertenece a un dominio confirmado para tu universidad. Revisa el dominio o utiliza uno de los aceptados.","error");
- if(user.email?.toLowerCase()===email&&user.email_confirmed_at){
-  const {data,error}=await db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").eq("user_id",user.id).single();
-  if(error)return toast(cleanError(error),"error");
-  setStudentProfile(data);if(institutionVerified(data))return toast("Tu correo institucional ya aparece confirmado.");
-  return toast("Tu correo coincide; vuelve a comprobar su confirmación desde el enlace recibido.","error");
+ async function explainAcademicError(error,reply){
+  if(reply?.error)return reply.error;
+  try{
+   if(error?.context&&typeof error.context.json==="function"){
+    const details=await error.context.json();
+    return details?.error||details?.message||"No pudimos verificar el correo.";
+   }
+  }catch{}
+  return error?.message||"No pudimos completar la verificación académica.";
  }
- setBusy(true);
- const {error}=await db.auth.updateUser({email},{emailRedirectTo:window.location.origin+"/plataforma"});
- setBusy(false);
- if(error)return toast(cleanError(error),"error");
- setInstitutionalEmail("");
- toast("Te enviamos una solicitud de cambio al correo universitario. Revisa los correos de confirmación; esta acción también cambia el email principal de acceso a tu cuenta.");
-}
+ async function requestInstitutionalEmailVerification(e){
+  e.preventDefault();
+  if(!db||!user||!studentProfile)return;
+  const email=institutionalEmail.trim().toLowerCase();
+  if(!matchUniversityEmail(email,studentProfile.university_code)){
+   setAcademicMessage("Ese dominio académico no corresponde a la universidad elegida.");
+   return;
+  }
+  setBusy(true);setAcademicMessage("");
+  try{
+   const {data,error}=await db.functions.invoke("academic-email-verification",{body:{action:"request",academic_email:email}});
+   if(error||!data?.ok){setAcademicMessage(await explainAcademicError(error,data));return;}
+   setAcademicSent(true);setAcademicCode("");setAcademicMessage(data.message||"Revisa tu correo universitario.");
+  }catch{setAcademicMessage("No pudimos contactar el servicio de verificación.");}
+  finally{setBusy(false);}
+ }
+ async function confirmAcademicCode(e){
+  e.preventDefault();
+  if(!db||!user||academicCode.length!==8)return;
+  setBusy(true);setAcademicMessage("");
+  try{
+   const {data,error}=await db.functions.invoke("academic-email-verification",{body:{action:"confirm",code:academicCode}});
+   if(error||!data?.ok){setAcademicMessage(await explainAcademicError(error,data));return;}
+   setAcademicSent(false);setAcademicCode("");setAcademicMessage(data.message||"Correo académico confirmado.");
+   const {data:profile,error:refreshError}=await db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at,verified_academic_email").eq("user_id",user.id).maybeSingle();
+   if(!refreshError){setStudentProfile(profile||null);setProfileChecked(true);}
+  }catch{setAcademicMessage("No pudimos comprobar el código. Inténtalo nuevamente.");}
+  finally{setBusy(false);}
+ }
  async function refreshVerification(){
  if(!db||!user)return;
  const {data,error}=await db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").eq("user_id",user.id).maybeSingle();
@@ -221,20 +241,31 @@ export default function App(){
  </div>}
  <button type="submit" disabled={busy||!user||!profileForm.university_code} className="btn btn-dark submit">{busy?<Loader2 className="spin" size={18}/>:<Check size={17}/>}Guardar mi universidad</button>
  </form></Modal>}
- {modal==="verification"&&<Modal title="Verifica tu cuenta universitaria" subtitle="Se requiere un correo institucional confirmado para agregar profesores y publicar reseñas." onClose={close}>
-  <div className="anon-privacy"><ShieldCheck size={20}/><div><b>Tu correo no aparece junto a tus reseñas</b><span>Solo verificamos que puedas acceder al correo de la institución elegida. No solicitamos contraseñas de la universidad ni publicamos tu identidad.</span></div></div>
+ {modal==="verification"&&<Modal title="Verifica tu correo académico" subtitle="Tu correo personal seguirá siendo el acceso a tu cuenta. La confirmación académica es independiente." onClose={close}>
+  <div className="anon-privacy"><ShieldCheck size={20}/><div><b>Solo enviamos el código al correo universitario</b><span>No enviamos confirmaciones académicas al correo personal ni modificamos el correo con el que inicias sesión. Tu identidad seguirá oculta en las reseñas públicas.</span></div></div>
   {studentProfile?<div className="verification-info">
    <p><b>Universidad:</b> {universities.find(x=>x.code===studentProfile.university_code)?.name||"Tu universidad"} · {universities.find(x=>x.code===studentProfile.university_code)?.city||""}</p>
-   <p><b>Estado:</b> {institutionVerified(studentProfile)?"Correo institucional confirmado":user?.email_confirmed_at?"Correo confirmado, pero el dominio no coincide con la institución":"Correo institucional aún sin confirmar"}</p>
-   {institutionVerified(studentProfile)?<div className="verification-success"><ShieldCheck size={20}/> Correo institucional confirmado. Ya puedes participar en las reseñas, respetando las reglas de la comunidad.</div>:
-   <form className="form" onSubmit={requestInstitutionalEmailVerification}>
-    <Field label="Correo institucional al que tienes acceso"><input required type="email" autoComplete="email" value={institutionalEmail} onChange={e=>setInstitutionalEmail(e.target.value)} placeholder={allowedInstitutionalDomains(studentProfile.university_code)[0]?"tuusuario@"+allowedInstitutionalDomains(studentProfile.university_code)[0].domain:"correo@universidad.edu.co"}/></Field>
-    <div className="university-verify-preview"><b>Dominios aceptados</b><p>{allowedInstitutionalDomains(studentProfile.university_code).length?allowedInstitutionalDomains(studentProfile.university_code).map(x=>"@"+x.domain).join(" · "):"Aún no tenemos un dominio oficialmente validado para esta universidad."}</p><small>Este procedimiento actualiza el correo principal de tu cuenta. Supabase puede enviarte confirmaciones tanto al correo anterior como al universitario. No compartas contraseñas ni códigos.</small></div>
-    <button className="btn btn-dark submit" type="submit" disabled={busy||!matchUniversityEmail(institutionalEmail,studentProfile.university_code)}>{busy?<Loader2 className="spin" size={18}/>:<ShieldCheck size={17}/>}Enviar solicitud de confirmación</button>
-   </form>}
-   <button type="button" className="verification-refresh" onClick={refreshVerification}><Check size={16}/> Volver a comprobar mi verificación</button>
-   <p className="verification-disclaimer">Importante: confirmar el correo demuestra control de una cuenta institucional. Algunas universidades también proporcionan estas cuentas a docentes, empleados y egresados; no es una prueba de matrícula activa.</p>
-  </div>:<div className="soft-note"><LockKeyhole size={18}/>Primero completa tu perfil indicando la universidad.</div>}
+   <p><b>Estado:</b> {institutionVerified(studentProfile)?"Correo universitario confirmado":"Correo de acceso confirmado; vínculo universitario pendiente"}</p>
+   {institutionVerified(studentProfile)?<div className="verification-success"><ShieldCheck size={20}/>Tu correo académico ya está validado. Puedes publicar reseñas y proponer profesores conforme a las reglas.</div>:
+   <>
+    <form className="form" onSubmit={requestInstitutionalEmailVerification}>
+     <Field label="Dirección de correo universitario"><input required type="email" autoComplete="off" value={institutionalEmail} onChange={e=>{setInstitutionalEmail(e.target.value);setAcademicSent(false);setAcademicCode("");setAcademicMessage("")}} placeholder={allowedInstitutionalDomains(studentProfile.university_code)[0]?"tuusuario@"+allowedInstitutionalDomains(studentProfile.university_code)[0].domain:"correo@universidad.edu.co"}/></Field>
+     <div className="university-verify-preview">
+      <b>Dominios universitarios reconocidos</b>
+      <p>{allowedInstitutionalDomains(studentProfile.university_code).length?allowedInstitutionalDomains(studentProfile.university_code).map(x=>"@"+x.domain).join(" · "):"Todavía falta verificar el dominio institucional de esta universidad."}</p>
+      <small>Al enviar el código no se cambia tu dirección personal de acceso. Solo se solicita una prueba de control del correo universitario. El código vence en 15 minutos.</small>
+     </div>
+     <button className="btn btn-dark submit" type="submit" disabled={busy||!matchUniversityEmail(institutionalEmail,studentProfile.university_code)}>{busy?<Loader2 className="spin" size={18}/>:<Send size={17}/>}Enviar código únicamente al académico</button>
+    </form>
+    {academicSent&&<form className="form academic-code-form" onSubmit={confirmAcademicCode}>
+     <Field label="Código de 8 dígitos del correo académico"><input required type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{8}" maxLength={8} value={academicCode} onChange={e=>setAcademicCode(e.target.value.replace(/\D/g,"").slice(0,8))} placeholder="12345678" /></Field>
+     <button className="btn btn-dark submit" disabled={busy||academicCode.length!==8} type="submit">{busy?<Loader2 className="spin" size={18}/>:<ShieldCheck size={18}/>}Confirmar mi correo académico</button>
+    </form>}
+    {academicMessage&&<div className={academicSent?"academic-info":"academic-error"} role="status">{academicMessage}</div>}
+   </>}
+   <button type="button" className="verification-refresh" onClick={refreshVerification}><Check size={16}/>Consultar mi estado de verificación</button>
+   <p className="verification-disclaimer">Importante: tener acceso a un correo universitario es una señal de vinculación institucional, pero no confirma matrícula vigente. No compartas nunca el código. Los correos de cambio de dirección enviados por el sistema anterior ya no son necesarios para este proceso.</p>
+  </div>:<div className="soft-note"><LockKeyhole size={18}/>Primero completa tu perfil indicando tu universidad.</div>}
  </Modal>}
  {modal==="add"&&<Modal title="Agregar un profesor" subtitle="Ayuda a completar nuestro directorio. Revisaremos los datos antes de publicarlos." onClose={close}><form className="form" onSubmit={submitProfessor}><Field label="Nombre completo del profesor"><input required minLength={5} maxLength={120} value={newProf.name} onChange={e=>setNewProf({...newProf,name:e.target.value})} placeholder="Ej. María Fernanda Rodríguez"/></Field><Field label="Universidad o institución"><input value={uniTerm} onChange={e=>{setUniTerm(e.target.value);setNewProf({...newProf,university_code:""})}} placeholder="Escribe para buscar una institución..." required/>{uniTerm&&<div className="suggestions">{uniOptions.map(x=><button type="button" key={x.code} onClick={()=>{setUniTerm(x.name+" · "+(x.city||x.department));setNewProf({...newProf,university_code:x.code})}}><School size={16}/><span>{x.name}<small>{x.city||x.department}</small></span></button>)}</div>}{newProf.university_code&&<div className="selected-note"><Check size={14}/>Institución seleccionada</div>}</Field>{newProf.university_code&&normName(newProf.name).length>=3&&<div className="teacher-suggestions"><div className="teacher-suggestions-head"><Search size={16}/><b>{similarProfessors.length?"¿Es alguno de estos profesores?":"No encontramos coincidencias publicadas"}</b></div>
  {similarProfessors.map(p=><button type="button" key={p.id} className="teacher-suggestion" onClick={()=>enterProf(p)}><Initial name={p.name}/><span><b>{p.name}</b><small>{p.university_name} · Ver perfil y calificar</small></span><ArrowRight size={18}/></button>)}
