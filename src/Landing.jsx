@@ -5,12 +5,13 @@ import "./landing.css";
 
 const cities=["Valledupar","Bogotá","Medellín","Barranquilla","Cali"];
 const featured=[
- {code:"1123",name:"Universidad Popular del Cesar",city:"Aguachica"},
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad popular del cesar")&&u.city==="Valledupar").slice(0,1),
+ ...universities.filter(u=>u.code==="areandina-valledupar"),
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad nacional de colombia")&&u.city.toLowerCase().includes("bogot")).slice(0,1),
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad de antioquia")&&u.city==="Medellín").slice(0,1),
- ...universities.filter(u=>u.name.toLowerCase().includes("universidad del norte")).slice(0,1)
-].filter((u,i,a)=>a.findIndex(v=>v.code===u.code)===i).slice(0,4);
+ ...universities.filter(u=>u.name.toLowerCase().includes("universidad del norte")).slice(0,1),
+ ...universities.filter(u=>u.name.toLowerCase().includes("universidad popular del cesar")&&u.city==="Aguachica").slice(0,1)
+].filter((u,i,a)=>a.findIndex(v=>v.code===u.code)===i).slice(0,6);
 
 function AnonymousVisual(){
  return <div className="lp-art" aria-hidden="true">
@@ -33,7 +34,7 @@ function Flow({number,icon:Icon,title,description,tint}){
 export default function Landing({onExplore,onRegister,onLogin,onSearch,onOpenPrivacy,user,universityCount=361,professorCount=0}){
  const [searchMode,setSearchMode]=useState("universidades"),[query,setQuery]=useState("");
  const submit=e=>{e.preventDefault();onSearch(searchMode,query.trim())};
- const choose=u=>onExplore("universidades",u.name);
+ const choose=u=>onExplore("universidades",u.name+" "+u.city);
  return <div className="lp">
    <section className="lp-hero" id="inicio">
     <div className="lp-hero-noise"/>
@@ -97,7 +98,7 @@ export default function Landing({onExplore,onRegister,onLogin,onSearch,onOpenPri
    </div></section>
 
    <section className="lp-section lp-universities" id="universidades"><div className="lp-wrap">
-    <div className="lp-section-heading"><div><span className="lp-overline">ENCUENTRA TU CAMPUS</span><h2>¿Tu universidad ya <em>está aquí?</em></h2></div><p>El directorio incluye {universityCount} registros de instituciones y sedes colombianas del conjunto de datos del Ministerio de Educación.</p></div>
+    <div className="lp-section-heading"><div><span className="lp-overline">ENCUENTRA TU CAMPUS</span><h2>¿Tu universidad ya <em>está aquí?</em></h2></div><p>El directorio incluye {universityCount} registros de instituciones y sedes colombianas, a partir de datos del Ministerio de Educación y páginas oficiales de universidades.</p></div>
     <div className="lp-uni-grid">{featured.map((u,i)=><button className="lp-uni-card" key={u.code} onClick={()=>choose(u)}><span className={"lp-uni-badge color-"+i}><School size={22}/></span><span className="lp-uni-card-main"><b>{u.name}</b><small><MapPin size={13}/> {u.city}</small></span><ArrowUpRight size={19}/></button>)}</div>
     <div className="lp-all-unis"><button onClick={()=>onExplore("universidades","")}>Ver todas las universidades <ArrowRight size={18}/></button></div>
    </div></section>
