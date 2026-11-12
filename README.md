@@ -33,6 +33,29 @@ El SMTP de prueba de Supabase limita el envío a direcciones autorizadas del equ
 Docs: https://supabase.com/docs/guides/auth/social-sign-in/auth-google y https://supabase.com/docs/guides/auth/auth-smtp
 
 
+
+## Verificación de correo institucional y protección contra duplicados (12 nov 2026)
+
+Se desplegó en Supabase y Vercel. Migraciones aplicadas: `04_complete_ies_catalog.sql`, `05_institutional_verification.sql`, `06_fix_institutional_trigger.sql` y `07_professor_duplicate_protection.sql`. Para una base nueva ejecútalas después de las migraciones 01–03.
+
+**Modelo de verificación:**
+- La cuenta puede crearse con Google (OAuth pendiente de activación externa), correo personal o correo institucional. La institución elegida se guarda en el perfil privado.
+- Para **publicar una reseña o proponer un profesor** se exige correo institucional confirmado y coincidencia de dominio con la institución elegida. El servidor hace esa comprobación mediante triggers de `auth.users`, tabla `verified_institution_domains`, estado privado en `student_profiles` y reglas RLS de inserción en `review_entries` y `professor_requests`. No basta con editar el frontend.
+- Dominios semilla contrastados: `estudiantes.areandina.edu.co`, `areandina.edu.co`, `unicesar.edu.co`, `unal.edu.co`, `udea.edu.co`, `uninorte.edu.co`, `uniandes.edu.co`. Se vinculan al código de la institución matriz; las sedes comparten dominio.
+- Los miembros con correo personal pueden explorar. Si desean publicar, disponen de una pantalla que solicita confirmar el correo institucional a través de `auth.updateUser({email})`. **Esto cambia el correo principal de inicio de sesión** y puede requerir confirmar la dirección nueva y la anterior.
+- **Advertencia de alcance:** verificar un email institucional confirma el acceso a esa casilla. No valida matrícula vigente ni garantiza que la persona sea estudiante; varios dominios sirven también a egresados, funcionarios y docentes. El dominio estudiantil dedicado tiene mayor valor como señal, pero tampoco acredita matrícula vigente. No hay validación oficial con rectorías ni revisión de carnés. Las reseñas nunca muestran nombre, correo, universidad, carrera ni ID del usuario.
+- Para agregar dominios de nuevas universidades se requiere **evidencia institucional de uso como dominio de correo**. No inferirlos del dominio web de una universidad. Añadir tanto al registro de la base de datos como a `src/university-email-domains.json`.
+- **SMTP personalizado aún pendiente.** Para cuentas de correo manuales, configurar proveedor en Supabase Auth → SMTP y URL Configuration. El correo de prueba de Supabase puede no entregar correos a estudiantes ajenos al equipo; sin él no se puede completar la confirmación.
+
+**Docentes y nombres repetidos:**
+- La creación de fichas de profesores impide duplicados por universidad/sede mediante un índice único sobre un nombre normalizado que ignora mayúsculas, acentos y espacios repetidos.
+- Las solicitudes **pendientes** también tienen índice único; solicitudes repetidas concurrentes se rechazan desde Postgres.
+- El formulario sugiere perfiles existentes en tiempo real según el nombre escrito y la institución elegida, con enlace a su ficha, e impide enviar una coincidencia exacta.
+- El conjunto inicial de profesores y reseñas permanece vacío. No se crean ejemplos falsos.
+
+**Instituciones y sedes:** a fecha 12/11/2026, 392 registros: 391 registros (activos e inactivos) de https://hecaa.mineducacion.gov.co/consultaspublicas/ies y Areandina Valledupar verificada por separado. Cada registro conserva su código propio, tipo académico, estado y código de la institución matriz cuando está disponible.
+
+
 ## Experiencia web (12 nov 2026)
 
 La navegación ahora se divide en dos vistas que comparten el mismo proyecto, datos y dominio:
@@ -44,7 +67,7 @@ La navegación ahora se divide en dos vistas que comparten el mismo proyecto, da
 - El catálogo universitario sigue siendo un conjunto de registros de sedes e instituciones, no un directorio exhaustivo de docentes. La experiencia muestra estados vacíos reales, sin reseñas artificiales.
 
 ## Funciones MVP
-- 362 registros de instituciones y sedes: 361 del conjunto de datos del Ministerio de Educación/SNIES y la sede Valledupar de Areandina, confirmada en el sitio oficial de la institución (12/11/2026).
+- 392 registros en el catálogo nacional: 391 de la consulta pública MEN Hecaa y Areandina Valledupar verificada en su sitio institucional.
 - Búsqueda por nombre, universidad, ciudad o departamento.
 - Agregar profesores, con aprobación obligatoria antes de publicarlos.
 - Registro por correo y contraseña.
