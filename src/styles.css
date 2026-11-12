@@ -43,3 +43,38 @@
 @media(max-width:720px){.mobile-only{display:block}.stat-intro{align-items:flex-start;flex-direction:column}.stat-big{align-items:flex-start}.google-auth-button{min-height:47px}.admin-tabs{flex-wrap:wrap}}
 
 .provider-note{font-size:10px;line-height:1.6;color:#875f2b;background:#fff6e9;border-radius:8px;margin:-12px 0 16px;padding:9px 11px}
+
+/* Institutional-email student onboarding and professor duplicate finder */
+.email-signup-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 13px;background:#f0f4f5;border-radius:12px;padding:5px}
+.email-signup-switch button{background:transparent;border:0;border-radius:9px;display:flex;gap:7px;justify-content:center;align-items:center;font-size:11px;font-weight:800;color:#6b8191;padding:11px 9px}
+.email-signup-switch button.active{color:#315d58;background:white;box-shadow:0 3px 13px #15392f13}
+.university-verify-preview{border:1px solid #dbe7e0;background:#f3f9f5;border-radius:11px;padding:12px 14px;margin:3px 0 16px;color:#476b5f}
+.university-verify-preview b{display:flex;align-items:center;gap:8px;font-size:11px}
+.university-verify-preview p{margin:8px 0 4px;font-size:11px;overflow-wrap:anywhere;color:#2d614f;line-height:1.7}
+.university-verify-preview small{font-size:10px;color:#708b7b;line-height:1.6}
+.verification-pending,.verification-success{display:flex;align-items:center;gap:12px;border-radius:11px;background:#fff6e4;color:#7e6329;padding:12px 14px;border:1px solid #f5e3b6;margin:14px 0}
+.verification-success{background:#eaf7f1;color:#267657;border-color:#cde9dc}
+.verification-pending>svg,.verification-success>svg{flex-shrink:0}
+.verification-pending>div,.verification-success>div{flex:1}
+.verification-pending b{display:block;font-size:11px;margin-bottom:4px}
+.verification-pending span{display:block;font-size:10px;line-height:1.6}
+.verification-pending button{background:#825d30;color:white;border:0;border-radius:8px;font-size:10px;font-weight:800;padding:9px}
+.verification-info{display:grid;gap:11px}
+.verification-info>p{margin:0;font-size:12px;line-height:1.7;color:#657888}
+.verification-info>p b{color:#2c4253}
+.verification-disclaimer{background:#f8f8f2;border-radius:8px;padding:11px 12px;font-size:10px!important;line-height:1.8!important;color:#829095!important}
+.verification-refresh{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;background:white;border:1px solid #dbe3e7;color:#526e7d;border-radius:8px;font-size:11px;font-weight:800;padding:12px}
+.verification-refresh:hover{background:#f7fafc}
+.teacher-suggestions{border-radius:12px;border:1px solid #d7e5e6;background:#f9fcfc;padding:12px;margin:7px 0 17px}
+.teacher-suggestions-head{display:flex;align-items:center;gap:7px;color:#3e6571;margin-bottom:9px}
+.teacher-suggestions-head b{font-size:11px}
+.teacher-suggestion{background:white;border:1px solid #ebf0f0;display:flex;align-items:center;gap:10px;padding:9px;margin-bottom:7px;width:100%;text-align:left;border-radius:9px}
+.teacher-suggestion:hover{border-color:#8fc4c3}
+.teacher-suggestion .avatar{width:35px;height:35px;min-width:35px;font-size:11px}
+.teacher-suggestion>span:nth-child(2){flex:1}
+.teacher-suggestion b{font-size:11px;display:block;color:#23404f}
+.teacher-suggestion small{font-size:10px;display:block;color:#81959b;margin-top:3px}
+.teacher-suggestion>svg{color:#78a1a7}
+.teacher-suggestions>small{display:block;font-size:10px;color:#879ca1;line-height:1.5}
+.duplicate-warning{display:flex;gap:8px;color:#92522c;border-radius:8px;background:#fff1e2;padding:10px;font-size:10px;line-height:1.7;margin:8px 0}
+@media(max-width:420px){.email-signup-switch button{font-size:10px}.verification-pending{flex-wrap:wrap}.verification-pending>button{margin-left:auto}}
