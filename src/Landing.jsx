@@ -8,7 +8,7 @@ const featured=[
  {code:"1123",name:"Universidad Popular del Cesar",city:"Aguachica"},
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad popular del cesar")&&u.city==="Valledupar").slice(0,1),
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad nacional de colombia")&&u.city.toLowerCase().includes("bogot")).slice(0,1),
- ...universities.filter(u=>u.name.toLowerCase().includes("universidad de antioquia")).slice(0,1),
+ ...universities.filter(u=>u.name.toLowerCase().includes("universidad de antioquia")&&u.city==="Medellín").slice(0,1),
  ...universities.filter(u=>u.name.toLowerCase().includes("universidad del norte")).slice(0,1)
 ].filter((u,i,a)=>a.findIndex(v=>v.code===u.code)===i).slice(0,4);
 
