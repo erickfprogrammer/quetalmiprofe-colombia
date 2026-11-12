@@ -12,6 +12,13 @@ Plataforma de experiencias de docentes universitarios, creada con React 19, Vite
 - Reportes y panel de moderación; duplicados y límites básicos por cuenta.
 - Diseño responsive y estados vacíos reales sin reseñas inventadas.
 
+## Estado de infraestructura al 12 de noviembre de 2026
+- Sitio publicado: https://quetalmiprofe-colombia.vercel.app
+- Proyecto Supabase independiente creado: `QueTalMiProfeColombia` (`evfjfgpyuwdpbpoqobni`) en la organización Legendarios Civil.
+- Esquema SQL aplicado: cinco tablas con RLS, once políticas, comprobación de seguridad sin alertas.
+- Variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` instaladas en Vercel. La clave publicable no se almacena en el repositorio.
+- Falta **habilitar correo transaccional externo (SMTP)** y configurar **Auth → URL Configuration** antes de aceptar cuentas de estudiantes fuera del equipo.
+
 ## Puesta en marcha del backend
 1. Crear un proyecto Supabase INDEPENDIENTE de otros negocios.
 2. Ejecutar en SQL Editor el archivo supabase/schema.sql.
@@ -43,3 +50,12 @@ Pagos con pasarela, verificación institucional de estudiantes, moderación algo
 Idea comercial posterior: COP 10.000 una sola vez por herramientas premium opcionales como comparaciones detalladas, filtros y alertas; mantener públicas las opiniones y nunca cobrar para borrar o evitar reseñas negativas.
 
 Producto independiente; no afiliado a Rate My Professors.
+
+## Pendientes antes del lanzamiento público
+1. Abrir [Auth → URL Configuration](https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/url-configuration). Establecer **Site URL** `https://quetalmiprofe-colombia.vercel.app` y agregar `https://quetalmiprofe-colombia.vercel.app/**` a **Redirect URLs**.
+2. Abrir [Auth → SMTP](https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/smtp) y conectar un proveedor SMTP propio de la nueva marca; Supabase restringe su SMTP de prueba a destinatarios autorizados del equipo. Mantener la confirmación de correo activa.
+3. Probar registro/confirmación con correo externo y flujo real de alta, calificación, reporte y aprobación. Sin SMTP no está validado el registro público.
+4. Registrar una cuenta del responsable y asignar rol `admin` mediante un administrador de Supabase; verificar permisos al reingresar.
+5. Antes de recopilar opiniones de público, completar política de datos, responsable, términos, contactos y procedimiento de rectificación o retiro; instalar CAPTCHA y protección antiabuso.
+
+Documentación oficial: https://supabase.com/docs/guides/auth/auth-smtp
