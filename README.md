@@ -90,3 +90,7 @@ Producto independiente; no afiliado a Rate My Professors.
 5. Antes de recopilar opiniones de público, completar política de datos, responsable, términos, contactos y procedimiento de rectificación o retiro; instalar CAPTCHA y protección antiabuso.
 
 Documentación oficial: https://supabase.com/docs/guides/auth/auth-smtp
+
+### Bandera de disponibilidad de Google
+
+El botón OAuth se muestra como pendiente por seguridad mientras el proveedor no esté configurado. Después de activar Google en Google Cloud y Supabase, establecer VITE_GOOGLE_OAUTH_ENABLED=true en las variables de Vercel (production/preview) y volver a desplegar. Esta bandera sólo gestiona el estado visual del botón; no sustituye la validación del proveedor.
