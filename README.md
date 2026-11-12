@@ -21,7 +21,7 @@ El archivo supabase/02_student_profiles.sql crea student_universities, student_p
 3. Authorized JavaScript origins: https://quetalmiprofe-colombia.vercel.app
 4. Authorized Redirect URI (de GOOGLE, que dirige a Supabase): https://evfjfgpyuwdpbpoqobni.supabase.co/auth/v1/callback
 5. En https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/providers activar Google y configurar Client ID y Client Secret desde Google Cloud. NO guardar Client Secret en GitHub, frontend ni variables VITE.
-6. En https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/url-configuration configurar Site URL https://quetalmiprofe-colombia.vercel.app y añadir ese origen a los Redirect URLs permitidos.
+6. En https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/url-configuration configurar Site URL https://quetalmiprofe-colombia.vercel.app y añadir https://quetalmiprofe-colombia.vercel.app/** a los Redirect URLs permitidos, incluidos los enlaces que terminan en /plataforma.
 7. Probar login Google con un usuario externo, confirmar selector de universidad, guardar perfil, salir y volver a entrar. Google puede exigir usuarios de prueba o verificación de marca.
 
 El botón Google está desarrollado en el frontend; no funcionará hasta crear el cliente OAuth y activar el proveedor.
@@ -39,7 +39,7 @@ La navegación ahora se divide en dos vistas que comparten el mismo proyecto, da
 
 - `/`: landing page pública de bienvenida. Presenta el propósito de la plataforma, un buscador de profesores y universidades, el flujo de uso, un ejemplo visual explícitamente ilustrativo, preguntas frecuentes y el enfoque de anonimato público. Permite iniciar sesión o registrarse en un modal sobre la propia landing.
 - `/plataforma`: el directorio y la aplicación de reseñas real, con filtros, fichas de profesores, solicitudes, calificaciones y el panel de moderación existente. Se puede explorar sin cuenta; para escribir reseñas o proponer docentes se requiere autenticación y perfil universitario.
-- Buscar desde la landing abre automáticamente la plataforma y conserva el texto y la categoría de búsqueda. El logo y la ruta de navegación devuelven al inicio. Las URLs directas funcionan mediante rewrites SPA en Vercel.
+- Buscar desde la landing abre automáticamente la plataforma y conserva el texto y la categoría de búsqueda. El logo y la ruta de navegación devuelven al inicio. Las URLs directas funcionan mediante rewrites SPA en Vercel. El inicio de sesión manual exitoso entra a /plataforma; los callbacks de correo y Google también apuntan allí.
 - El diseño de la landing es original, toma como inspiración las buenas prácticas de descubrimiento de plataformas de valoración de profesores, sin reutilizar logos, nombres, imágenes, textos ni otros activos de Rate My Professors.
 - El catálogo universitario sigue siendo un conjunto de registros de sedes e instituciones, no un directorio exhaustivo de docentes. La experiencia muestra estados vacíos reales, sin reseñas artificiales.
 
