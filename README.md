@@ -12,7 +12,7 @@ Plataforma de experiencias de docentes universitarios, creada con React 19, Vite
 
 ### Migración del perfil universitario (YA aplicada a la base de datos actual)
 
-El archivo supabase/02_student_profiles.sql crea student_universities, student_profiles, university_student_counts y el trigger de inscripción inicial, con RLS y catálogo de 361 registros. En instalaciones nuevas, ejecutar primero supabase/schema.sql y luego supabase/02_student_profiles.sql.
+El archivo supabase/02_student_profiles.sql crea student_universities, student_profiles, university_student_counts y el trigger de inscripción inicial, con RLS y catálogo base de 361 registros. En instalaciones nuevas, ejecutar en orden supabase/schema.sql, supabase/02_student_profiles.sql y supabase/03_areandina_valledupar.sql, para incluir las sedes verificadas posteriormente.
 
 ### Activar Google en este proyecto (PENDIENTE DE CONFIGURACIÓN OAUTH EXTERNA)
 
@@ -44,7 +44,7 @@ La navegación ahora se divide en dos vistas que comparten el mismo proyecto, da
 - El catálogo universitario sigue siendo un conjunto de registros de sedes e instituciones, no un directorio exhaustivo de docentes. La experiencia muestra estados vacíos reales, sin reseñas artificiales.
 
 ## Funciones MVP
-- 361 registros de instituciones y sedes del Ministerio de Educación/SNIES (snapshot del archivo Datos Abiertos; corte de datos previo a 2026).
+- 362 registros de instituciones y sedes: 361 del conjunto de datos del Ministerio de Educación/SNIES y la sede Valledupar de Areandina, confirmada en el sitio oficial de la institución (12/11/2026).
 - Búsqueda por nombre, universidad, ciudad o departamento.
 - Agregar profesores, con aprobación obligatoria antes de publicarlos.
 - Registro por correo y contraseña.
@@ -104,3 +104,7 @@ Documentación oficial: https://supabase.com/docs/guides/auth/auth-smtp
 ### Bandera de disponibilidad de Google
 
 El botón OAuth se muestra como pendiente por seguridad mientras el proveedor no esté configurado. Después de activar Google en Google Cloud y Supabase, establecer VITE_GOOGLE_OAUTH_ENABLED=true en las variables de Vercel (production/preview) y volver a desplegar. Esta bandera sólo gestiona el estado visual del botón; no sustituye la validación del proveedor.
+
+### Sede Areandina Valledupar (12 nov 2026)
+
+Se añadió el registro con ID interno `areandina-valledupar` (NO es un código oficial SNIES), con ciudad Valledupar, departamento Cesar y sede Valledupar. Existe en el catálogo de universidades para búsqueda, selección en perfiles y registro. Se normalizó la denominación de Bogotá (código 2728) y Pereira (código 2737) a `Fundación Universitaria del Área Andina (Areandina)` para que la búsqueda por `Areandina`, `Área Andina`, `Fundación` o `Valledupar` los identifique correctamente. Fuente de la sede: https://www.areandina.edu.co/sedes-y-csu/ . En la landing se incluye como universidad destacada. Migración aplicada al proyecto Supabase actual: `supabase/03_areandina_valledupar.sql`.
