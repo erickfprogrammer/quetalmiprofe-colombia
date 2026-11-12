@@ -129,31 +129,31 @@ grant select,insert,update on public.professor_requests,public.review_entries,pu
 create policy "All read professors" on public.professors for select to anon,authenticated using(true);
 create policy "All read published reviews" on public.public_reviews for select to anon,authenticated using(true);
 create policy "Author or moderator views requests" on public.professor_requests for select to authenticated using(
- submitted_by=(select auth.uid()) or (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
+ submitted_by=(select auth.uid()) or ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
 );
 create policy "Authors submit requests pending" on public.professor_requests for insert to authenticated with check(
  submitted_by=(select auth.uid()) and status='pending'
 );
 create policy "Moderators update requests" on public.professor_requests for update to authenticated using(
- (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
-) with check ((select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator'));
+ ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
+) with check (((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator'));
 create policy "Author or moderator views private reviews" on public.review_entries for select to authenticated using(
- author_id=(select auth.uid()) or (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
+ author_id=(select auth.uid()) or ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
 );
 create policy "Authors submit reviews pending" on public.review_entries for insert to authenticated with check(
  author_id=(select auth.uid()) and status='pending'
 );
 create policy "Moderators update reviews" on public.review_entries for update to authenticated using(
- (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
-) with check ((select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator'));
+ ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
+) with check (((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator'));
 create policy "Author or moderator views reports" on public.reports for select to authenticated using(
- user_id=(select auth.uid()) or (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
+ user_id=(select auth.uid()) or ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
 );
 create policy "Authors submit reports pending" on public.reports for insert to authenticated with check(
  user_id=(select auth.uid()) and status='pending'
 );
 create policy "Moderators update reports" on public.reports for update to authenticated using(
- (select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator')
-) with check ((select auth.jwt()->'app_metadata'->>'role') in ('admin','moderator'));
+ ((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator')
+) with check (((select auth.jwt())->'app_metadata'->>'role') in ('admin','moderator'));
 revoke all on schema private from public,anon,authenticated;
 revoke all on all functions in schema private from public,anon,authenticated;
