@@ -2,6 +2,37 @@
 
 Plataforma de experiencias de docentes universitarios, creada con React 19, Vite, Supabase Auth, PostgreSQL RLS y Vercel.
 
+## Registro universitario y protección de identidad (12 nov 2026)
+
+- Registro por correo + contraseña: universidad/sede del catálogo nacional obligatoria. Programa y semestre opcionales.
+- Google OAuth: desarrollado en el frontend usando Supabase Auth. Tras la primera sesión, si falta perfil, el usuario debe completar obligatoriamente la universidad antes de opinar o registrar docentes.
+- Privacidad: la universidad y programa se guardan en student_profiles. public_reviews no contiene nombre, email, Google ID, identificador de autor, carrera ni universidad.
+- Anonimato PUBLICO. Los moderadores autorizados pueden acceder a datos internos para prevenir abusos, y pueden estar sujetos a requerimientos legales.
+- El panel de moderación ofrece recuentos de usuarios por universidad mediante university_student_counts, vista PostgreSQL con security_invoker=true. Los datos de pertenencia son autodeclarados, NO se verifica matrícula.
+
+### Migración del perfil universitario (YA aplicada a la base de datos actual)
+
+El archivo supabase/02_student_profiles.sql crea student_universities, student_profiles, university_student_counts y el trigger de inscripción inicial, con RLS y catálogo de 361 registros. En instalaciones nuevas, ejecutar primero supabase/schema.sql y luego supabase/02_student_profiles.sql.
+
+### Activar Google en este proyecto (PENDIENTE DE CONFIGURACIÓN OAUTH EXTERNA)
+
+1. Google Cloud Auth: https://console.cloud.google.com/auth/overview . Configurar consentimiento y audiencia Externa, ámbitos openid, email y profile.
+2. Crear OAuth Client ID de tipo Web application en https://console.cloud.google.com/auth/clients .
+3. Authorized JavaScript origins: https://quetalmiprofe-colombia.vercel.app
+4. Authorized Redirect URI (de GOOGLE, que dirige a Supabase): https://evfjfgpyuwdpbpoqobni.supabase.co/auth/v1/callback
+5. En https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/providers activar Google y configurar Client ID y Client Secret desde Google Cloud. NO guardar Client Secret en GitHub, frontend ni variables VITE.
+6. En https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/url-configuration configurar Site URL https://quetalmiprofe-colombia.vercel.app y añadir ese origen a los Redirect URLs permitidos.
+7. Probar login Google con un usuario externo, confirmar selector de universidad, guardar perfil, salir y volver a entrar. Google puede exigir usuarios de prueba o verificación de marca.
+
+El botón Google está desarrollado en el frontend; no funcionará hasta crear el cliente OAuth y activar el proveedor.
+
+### Activar registro de correo para público (SMTP PENDIENTE)
+
+El SMTP de prueba de Supabase limita el envío a direcciones autorizadas del equipo. Configurar proveedor externo en https://supabase.com/dashboard/project/evfjfgpyuwdpbpoqobni/auth/smtp antes de lanzar registro manual de alumnos. Mantener confirmación de correo, CAPTCHA y protecciones antiabuso.
+
+Docs: https://supabase.com/docs/guides/auth/social-sign-in/auth-google y https://supabase.com/docs/guides/auth/auth-smtp
+
+
 ## Funciones MVP
 - 361 registros de instituciones y sedes del Ministerio de Educación/SNIES (snapshot del archivo Datos Abiertos; corte de datos previo a 2026).
 - Búsqueda por nombre, universidad, ciudad o departamento.
