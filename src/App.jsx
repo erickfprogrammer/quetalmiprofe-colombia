@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useState}from"react";
 import{Search,GraduationCap,ArrowRight,Star,ShieldCheck,BookOpen,Menu,X,Plus,LogIn,LogOut,CheckCircle2,AlertCircle,ChevronRight,MessageCircle,Flag,School,LockKeyhole,ThumbsUp,Loader2,Sparkles,Eye,Heart,MessageSquare,Check,MapPin,Clock,Send,Filter,Settings2}from"lucide-react";
 import universities from"./universities.json";
+import institutionalDomains from "./university-email-domains.json";
 import Landing from "./Landing";
 import{db,configured}from"./supabase";
 
@@ -8,6 +9,11 @@ const googleOAuthConfigured=import.meta.env.VITE_GOOGLE_OAUTH_ENABLED==="true";
 const TAGS=["Explica bacano","Califica justo","Es exigente","Responde dudas","Da buen material","Puntual","Muchos trabajos","Parciales difíciles","Se preocupa por aprender","Buena metodología"];
 const fmt=n=>Number(n||0).toFixed(1);
 const normalize=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+const normName=s=>normalize(s).replace(/\s+/g," ").replace(/ñ/g,"n");
+const campusParent=code=>{const u=universities.find(x=>x.code===code);return u?.parent_code||(code==="areandina-valledupar"?"2728":code)};
+const matchUniversityEmail=(email,code)=>{const domain=String(email||"").trim().toLowerCase().split("@")[1];if(!domain||!code)return null;return institutionalDomains.find(x=>x.domain===domain&&x.parent_code===campusParent(code))||null};
+const allowedInstitutionalDomains=code=>institutionalDomains.filter(x=>x.parent_code===campusParent(code));
+const institutionVerified=p=>p?.verification_status==="institutional"||p?.verification_status==="student_domain";
 const cleanError=e=>{const m=e?.message||"";if(/already registered|user already exists/i.test(m))return "Ese correo ya está registrado. Inicia sesión.";if(/email address not authorized/i.test(m))return "Los correos externos aún no están habilitados. Necesitamos configurar el SMTP de la plataforma.";if(/email not confirmed/i.test(m))return "Revisa tu correo y confirma tu cuenta antes de ingresar.";if(/provider is not enabled|unsupported provider/i.test(m))return "Google aún no está activado en la configuración del proyecto.";return m||"Ocurrió un error. Intenta nuevamente."};
 function Initial({name}){return <span className="avatar">{(name||"P").split(" ").filter(Boolean).slice(0,2).map(s=>s[0]).join("").toUpperCase()}</span>}
 function Score({value=0,compact=false}){return <span className={"score "+(value>=4?"score-good":value>0&&value<3?"score-low":"")}><Star size={compact?14:18} fill="currentColor"/>{value?fmt(value):"—"}</span>}
@@ -30,10 +36,19 @@ const cardScore=(p,ratings)=>{const r=ratings.filter(x=>x.professor_id===p.id);r
 function ProfessorCard({professor,ratings,onClick}){const s=cardScore(professor,ratings);return <button className="prof-card" onClick={onClick}><div className="prof-top"><Initial name={professor.name}/><div className="prof-identity"><h3>{professor.name}</h3><p><School size={13}/>{professor.university_name}</p></div><ChevronRight size={19} className="prof-chevron"/></div><div className="prof-divider"/><div className="prof-bottom"><div><Score value={s.rating}/><span>{s.count===1?"1 opinión":s.count+" opiniones"}</span></div><div className="recommend"><ThumbsUp size={15}/>{s.count?s.recommend+"% recomiendan":"Sin calificar"}</div></div>{professor.campus&&<div className="campus"><MapPin size={12}/>{professor.campus}</div>}</button>}
 export default function App(){
  const [user,setUser]=useState(null),[inPlatform,setInPlatform]=useState(()=>window.location.pathname.startsWith("/plataforma")),[boot,setBoot]=useState(true),[teachers,setTeachers]=useState([]),[ratings,setRatings]=useState([]),[loading,setLoading]=useState(false),[q,setQ]=useState(""),[tab,setTab]=useState("profesores"),[uni,setUni]=useState(""),[showAllUnis,setShowAllUnis]=useState(false),[sort,setSort]=useState("relevancia"),[modal,setModal]=useState(""),[selected,setSelected]=useState(null),[authMode,setAuthMode]=useState("login"),[feedback,setFeedback]=useState(null),[busy,setBusy]=useState(false),[menu,setMenu]=useState(false),[adminData,setAdminData]=useState({professors:[],reviews:[],reports:[],students:[]}),[adminTab,setAdminTab]=useState("professors");
- const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
+ const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[registerEmailMode,setRegisterEmailMode]=useState("institutional"),[institutionalEmail,setInstitutionalEmail]=useState(""),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
  const admin=user?.app_metadata?.role==="admin"||user?.app_metadata?.role==="moderator";
  const sortedUnis=useMemo(()=>[...universities].sort((a,b)=>a.name.localeCompare(b.name,"es")) ,[]);
  const uniOptions=useMemo(()=>sortedUnis.filter(x=>normalize(x.name+" "+x.city).includes(normalize(uniTerm))).slice(0,8),[uniTerm,sortedUnis]);
+ const similarProfessors=useMemo(()=>{
+   const typed=normName(newProf.name);
+   if(!newProf.university_code||typed.length<3)return [];
+   const words=typed.split(" ").filter(w=>w.length>=3);
+   return teachers.filter(p=>p.university_code===newProf.university_code&&
+     (normName(p.name).includes(typed)||words.some(w=>normName(p.name).includes(w))))
+      .sort((a,b)=>Number(normName(a.name)===typed)-Number(normName(b.name)===typed)).reverse().slice(0,5);
+  },[teachers,newProf.name,newProf.university_code]);
+ const duplicateProfessor=similarProfessors.some(p=>normName(p.name)===normName(newProf.name));
  const matches=useMemo(()=>{let t=teachers.filter(p=>(!q||normalize(p.name+" "+p.university_name+" "+(p.campus||"")).includes(normalize(q)))&&(!uni||p.university_code===uni));return t.sort((a,b)=>sort==="nombre"?a.name.localeCompare(b.name):sort==="calificacion"?cardScore(b,ratings).rating-cardScore(a,ratings).rating:cardScore(b,ratings).count-cardScore(a,ratings).count)},[teachers,ratings,q,uni,sort]);
  const matchingUnis=useMemo(()=>sortedUnis.filter(x=>normalize(x.name+" "+x.city+" "+x.department).includes(normalize(q))).slice(0,showAllUnis?500:12),[sortedUnis,q,showAllUnis]);
  const selectedRatings=selected?ratings.filter(x=>x.professor_id===selected.id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)):[];
@@ -46,26 +61,27 @@ export default function App(){
   let live=true;
   if(!db||!user?.id){setStudentProfile(null);setProfileForm({university_code:"",study_program:"",semester:""});setProfileChecked(false);return;}
   setStudentProfile(null);setProfileChecked(false);
-  db.from("student_profiles").select("user_id,university_code,study_program,semester").eq("user_id",user.id).maybeSingle().then(({data,error})=>{
+  db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").eq("user_id",user.id).maybeSingle().then(({data,error})=>{
    if(!live)return;
    if(error){setFeedback({type:"error",text:"No se pudo consultar tu perfil académico: "+cleanError(error)});setProfileChecked(true);return;}
    setStudentProfile(data||null);setProfileForm({university_code:data?.university_code||"",study_program:data?.study_program||"",semester:data?.semester?String(data.semester):""});setProfileChecked(true);
    if(!data)setModal(m=>m==="auth"||m===""?"completeProfile":m);
   });
   return()=>{live=false};
- },[user?.id]);
+ },[user?.id,user?.email,user?.email_confirmed_at]);
  useEffect(()=>{function syncRoute(){setInPlatform(window.location.pathname.startsWith("/plataforma"));setMenu(false);setModal("");}window.addEventListener("popstate",syncRoute);return()=>window.removeEventListener("popstate",syncRoute)},[]);
  function navigateHome(){if(window.location.pathname!=="/")window.history.pushState(null,"","/");setInPlatform(false);setMenu(false);setModal("");setFeedback(null);window.scrollTo({top:0,behavior:"smooth"});}
  function navigatePlatform(nextTab="profesores",search=""){setTab(nextTab);setQ(search);setUni("");setShowAllUnis(false);setMenu(false);setModal("");setFeedback(null);if(window.location.pathname!=="/plataforma")window.history.pushState(null,"","/plataforma");setInPlatform(true);window.scrollTo({top:0,behavior:"smooth"});}
  function scrollLanding(section){setMenu(false);const el=document.getElementById(section);el?.scrollIntoView({behavior:"smooth",block:"start"});}
  function toast(text,type="success"){setFeedback({text,type});window.scrollTo({top:0,behavior:"smooth"});}
  function openLogin(mode="login"){setAuthMode(mode);setModal("auth");setFeedback(null)}
- function needsAuth(next){if(!configured){toast("El servicio de cuentas no está disponible todavía.","error");return;}if(!user){openLogin("register");return;}if(!profileChecked||!studentProfile){setModal("completeProfile");toast("Selecciona tu universidad antes de participar.");return;}setModal(next)}
+ function needsAuth(next){if(!configured){toast("El servicio de cuentas no está disponible todavía.","error");return;}if(!user){openLogin("register");return;}if(!profileChecked||!studentProfile){setModal("completeProfile");toast("Selecciona tu universidad antes de participar.");return;}if(!institutionVerified(studentProfile)){setModal("verification");toast("Para enviar opiniones debes confirmar un correo institucional de la universidad que elegiste.","error");return;}setModal(next)}
  function enterProf(p){setSelected(p);setModal("profile");window.history.replaceState(null,"","#profe-"+p.id)}
  function close(){setModal("");setAccepted(false);if(window.location.hash.startsWith("#profe-"))window.history.replaceState(null,"",window.location.pathname)}
  async function submitAuth(e){
  e.preventDefault();if(!db)return;
- if(authMode==="register"&&!universities.some(u=>u.code===authForm.university_code))return toast("Debes seleccionar tu universidad del listado oficial.","error");
+ if(authMode==="register"&&!universities.some(u=>u.code===authForm.university_code&&u.status!=="Inactiva"))return toast("Debes seleccionar una institución activa del listado oficial.","error");
+ if(authMode==="register"&&registerEmailMode==="institutional"&&!matchUniversityEmail(authForm.email,authForm.university_code))return toast("El correo debe pertenecer a un dominio universitario que hayamos validado para esa institución.","error");
  setBusy(true);const email=authForm.email.trim(),password=authForm.password;
  const data={university_code:authForm.university_code,study_program:authForm.study_program.trim(),semester:authForm.semester||null};
  const r=authMode==="register"?await db.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+"/plataforma",data}}):await db.auth.signInWithPassword({email,password});
@@ -83,11 +99,36 @@ export default function App(){
  e.preventDefault();if(!db||!user)return;
  if(!universities.some(u=>u.code===profileForm.university_code))return toast("Selecciona una institución válida.","error");
  setBusy(true);
- const {data,error}=await db.from("student_profiles").upsert({user_id:user.id,university_code:profileForm.university_code,study_program:profileForm.study_program.trim(),semester:profileForm.semester?Number(profileForm.semester):null},{onConflict:"user_id"}).select("user_id,university_code,study_program,semester").single();
+ const {data,error}=await db.from("student_profiles").upsert({user_id:user.id,university_code:profileForm.university_code,study_program:profileForm.study_program.trim(),semester:profileForm.semester?Number(profileForm.semester):null},{onConflict:"user_id"}).select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").single();
  setBusy(false);if(error)return toast(cleanError(error),"error");
- setStudentProfile(data);setProfileChecked(true);close();toast("Tu universidad quedó registrada de forma privada. Tus opiniones seguirán siendo anónimas para el público.");
+ setStudentProfile(data);setProfileChecked(true);close();toast(institutionVerified(data)?"Universidad guardada y correo institucional confirmado.":"Universidad guardada. Confirma tu correo institucional para poder publicar; tus opiniones seguirán siendo públicas sin tu identidad.");
 }
- async function submitProfessor(e){e.preventDefault();if(!db||!user)return;const found=universities.find(u=>u.code===newProf.university_code);if(!found)return toast("Selecciona una institución del listado oficial.","error");if(newProf.name.trim().length<5)return toast("Escribe el nombre completo del profesor.","error");setBusy(true);const{error}=await db.from("professor_requests").insert({name:newProf.name.trim(),university_code:found.code,university_name:found.name,campus:newProf.campus.trim(),submitted_by:user.id});setBusy(false);if(error)return toast(cleanError(error),"error");close();setNewProf({name:"",university_code:"",campus:""});setUniTerm("");toast("¡Gracias! Revisaremos los datos antes de publicar al profesor.");}
+ async function requestInstitutionalEmailVerification(e){
+ e.preventDefault();
+ if(!db||!user||!studentProfile)return;
+ const email=institutionalEmail.trim().toLowerCase();
+ const valid=matchUniversityEmail(email,studentProfile.university_code);
+ if(!valid)return toast("El correo no pertenece a un dominio confirmado para tu universidad. Revisa el dominio o utiliza uno de los aceptados.","error");
+ if(user.email?.toLowerCase()===email&&user.email_confirmed_at){
+  const {data,error}=await db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").eq("user_id",user.id).single();
+  if(error)return toast(cleanError(error),"error");
+  setStudentProfile(data);if(institutionVerified(data))return toast("Tu correo institucional ya aparece confirmado.");
+  return toast("Tu correo coincide; vuelve a comprobar su confirmación desde el enlace recibido.","error");
+ }
+ setBusy(true);
+ const {error}=await db.auth.updateUser({email},{emailRedirectTo:window.location.origin+"/plataforma"});
+ setBusy(false);
+ if(error)return toast(cleanError(error),"error");
+ setInstitutionalEmail("");
+ toast("Te enviamos una solicitud de cambio al correo universitario. Revisa los correos de confirmación; esta acción también cambia el email principal de acceso a tu cuenta.");
+}
+ async function refreshVerification(){
+ if(!db||!user)return;
+ const {data,error}=await db.from("student_profiles").select("user_id,university_code,study_program,semester,verification_status,verified_domain,verified_at").eq("user_id",user.id).maybeSingle();
+ if(error)return toast(cleanError(error),"error");
+ setStudentProfile(data||null);toast(institutionVerified(data)?"Tu correo institucional está verificado.":"Todavía no se ha confirmado el correo institucional de esta cuenta.",institutionVerified(data)?"success":"error");
+}
+ async function submitProfessor(e){e.preventDefault();if(!db||!user)return;if(duplicateProfessor)return toast("Este profesor ya aparece registrado en esta universidad. Entra a su ficha en lugar de duplicarlo.","error");const found=universities.find(u=>u.code===newProf.university_code);if(!found)return toast("Selecciona una institución del listado oficial.","error");if(newProf.name.trim().length<5)return toast("Escribe el nombre completo del profesor.","error");setBusy(true);const{error}=await db.from("professor_requests").insert({name:newProf.name.trim(),university_code:found.code,university_name:found.name,campus:newProf.campus.trim(),submitted_by:user.id});setBusy(false);if(error)return toast(error.code==="23505"?"Ese profesor ya está registrado o existe una solicitud pendiente para la misma universidad.":"No se pudo crear la solicitud: "+cleanError(error),"error");close();setNewProf({name:"",university_code:"",campus:""});setUniTerm("");toast("¡Gracias! Revisaremos los datos antes de publicar al profesor.");}
  async function submitReview(e){e.preventDefault();if(!db||!user||!selected)return;if(!review.score||!review.difficulty||review.would_take_again===null)return toast("Completa las calificaciones y si volverías a tomar su clase.","error");if(review.comment.trim().length<40)return toast("Tu opinión debe tener al menos 40 caracteres.","error");if(/(?:https?:\/\/|www\.|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}|\b3\d{9}\b)/i.test(review.comment))return toast("Evita enlaces, emails y números de teléfono.","error");if(!accepted)return toast("Debes aceptar las reglas de la comunidad.","error");setBusy(true);const{error}=await db.from("review_entries").insert({professor_id:selected.id,author_id:user.id,course:review.course.trim(),period:review.period.trim(),score:review.score,difficulty:review.difficulty,would_take_again:review.would_take_again,comment:review.comment.trim(),tags:review.tags,status:"pending"});setBusy(false);if(error)return toast(error.code==="23505"?"Ya opinaste sobre este profesor en esa materia.":cleanError(error),"error");close();setReview({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]});toast("Tu opinión se envió anónimamente. Aparecerá tras su revisión.");}
  async function submitReport(e){e.preventDefault();if(!db||!user)return;setBusy(true);const{error}=await db.from("reports").insert({review_id:report.review_id,user_id:user.id,reason:report.reason,detail:report.detail.trim()});setBusy(false);if(error)return toast(cleanError(error),"error");close();toast("Recibimos tu reporte. Nuestro equipo lo revisará.");}
  async function moderate(table,id,status){setBusy(true);const{error}=await db.from(table).update({status}).eq("id",id);setBusy(false);if(error)return toast(cleanError(error),"error");await Promise.all([loadAdmin(),loadAll()]);toast(status==="approved"?"Contenido aprobado.":"Contenido actualizado.");}
