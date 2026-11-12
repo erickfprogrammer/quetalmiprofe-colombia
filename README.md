@@ -36,13 +36,13 @@ Docs: https://supabase.com/docs/guides/auth/social-sign-in/auth-google y https:/
 
 ## Verificación de correo institucional y protección contra duplicados (12 nov 2026)
 
-Se desplegó en Supabase y Vercel. Migraciones aplicadas: `04_complete_ies_catalog.sql`, `05_institutional_verification.sql`, `06_fix_institutional_trigger.sql` y `07_professor_duplicate_protection.sql`. Para una base nueva ejecútalas después de las migraciones 01–03.
+Se desplegó en Supabase y Vercel. Migraciones aplicadas: `04_complete_ies_catalog.sql`, `05_institutional_verification.sql`, `06_fix_institutional_trigger.sql` y `07_professor_duplicate_protection.sql` y `08_independent_academic_email.sql`. Para una base nueva ejecútalas después de las migraciones 01–03.
 
 **Modelo de verificación:**
 - La cuenta puede crearse con Google (OAuth pendiente de activación externa), correo personal o correo institucional. La institución elegida se guarda en el perfil privado.
 - Para **publicar una reseña o proponer un profesor** se exige correo institucional confirmado y coincidencia de dominio con la institución elegida. El servidor hace esa comprobación mediante triggers de `auth.users`, tabla `verified_institution_domains`, estado privado en `student_profiles` y reglas RLS de inserción en `review_entries` y `professor_requests`. No basta con editar el frontend.
 - Dominios semilla contrastados: `estudiantes.areandina.edu.co`, `areandina.edu.co`, `unicesar.edu.co`, `unal.edu.co`, `udea.edu.co`, `uninorte.edu.co`, `uniandes.edu.co`. Se vinculan al código de la institución matriz; las sedes comparten dominio.
-- Los miembros con correo personal pueden explorar. Si desean publicar, disponen de una pantalla que solicita confirmar el correo institucional a través de `auth.updateUser({email})`. **Esto cambia el correo principal de inicio de sesión** y puede requerir confirmar la dirección nueva y la anterior.
+- Los miembros con correo personal pueden explorar y verificar el académico SIN cambiar su correo de inicio de sesión. La función academic-email-verification envía solamente a la cuenta académica un código de ocho dígitos con vencimiento y límite de intentos. Requiere SMTP; ver supabase/ACADEMIC_VERIFICATION_SETUP.md.
 - **Advertencia de alcance:** verificar un email institucional confirma el acceso a esa casilla. No valida matrícula vigente ni garantiza que la persona sea estudiante; varios dominios sirven también a egresados, funcionarios y docentes. El dominio estudiantil dedicado tiene mayor valor como señal, pero tampoco acredita matrícula vigente. No hay validación oficial con rectorías ni revisión de carnés. Las reseñas nunca muestran nombre, correo, universidad, carrera ni ID del usuario.
 - Para agregar dominios de nuevas universidades se requiere **evidencia institucional de uso como dominio de correo**. No inferirlos del dominio web de una universidad. Añadir tanto al registro de la base de datos como a `src/university-email-domains.json`.
 - **SMTP personalizado aún pendiente.** Para cuentas de correo manuales, configurar proveedor en Supabase Auth → SMTP y URL Configuration. El correo de prueba de Supabase puede no entregar correos a estudiantes ajenos al equipo; sin él no se puede completar la confirmación.
@@ -56,6 +56,15 @@ Se desplegó en Supabase y Vercel. Migraciones aplicadas: `04_complete_ies_catal
 **Instituciones y sedes:** a fecha 12/11/2026, 392 registros: 391 registros (activos e inactivos) de https://hecaa.mineducacion.gov.co/consultaspublicas/ies y Areandina Valledupar verificada por separado. Cada registro conserva su código propio, tipo académico, estado y código de la institución matriz cuando está disponible.
 
 
+## Corrección de verificación universitaria y envío sin dominio (12 nov 2026)
+
+El proceso académico se separó del cambio de email de Supabase Auth. Las cuentas Google/personales mantienen su dirección de inicio de sesión. Para verificar la universidad, se solicita un código aleatorio de ocho dígitos entregado SOLO a la cuenta institucional, se introduce en la web y se registra de forma privada en el perfil. La función Supabase Edge usa JWT obligatorio, confirma la universidad y el dominio aprobado, limita los envíos a tres por hora, vence en 15 minutos y ofrece cinco intentos.
+
+Para un piloto SIN comprar dominio, se puede usar un Gmail independiente como remitente SMTP con contraseña de aplicación y verificación en dos pasos. Se configura directamente en Supabase Secrets con las variables ACADEMIC_SMTP_HOST, ACADEMIC_SMTP_PORT, ACADEMIC_SMTP_USER, ACADEMIC_SMTP_PASS y ACADEMIC_SMTP_FROM; el correo de alta personal requiere además SMTP en Supabase Auth. Resend no puede enviar a cualquier estudiante hasta verificar un dominio remitente propio. El sitio mantiene el subdominio de Vercel y no cambia de nombre.
+
+Los mensajes de cambio de email anteriores no forman parte del flujo corregido. La cuenta personal previamente confirmada sigue activa; la verificación académica solo se activa al confirmar el código independiente.
+
+Guía de conexión sin dominio: [supabase/ACADEMIC_VERIFICATION_SETUP.md](supabase/ACADEMIC_VERIFICATION_SETUP.md).
 ## Experiencia web (12 nov 2026)
 
 La navegación ahora se divide en dos vistas que comparten el mismo proyecto, datos y dominio:
