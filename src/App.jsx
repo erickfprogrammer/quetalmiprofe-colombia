@@ -68,15 +68,15 @@ export default function App(){
  if(authMode==="register"&&!universities.some(u=>u.code===authForm.university_code))return toast("Debes seleccionar tu universidad del listado oficial.","error");
  setBusy(true);const email=authForm.email.trim(),password=authForm.password;
  const data={university_code:authForm.university_code,study_program:authForm.study_program.trim(),semester:authForm.semester||null};
- const r=authMode==="register"?await db.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin,data}}):await db.auth.signInWithPassword({email,password});
+ const r=authMode==="register"?await db.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+"/plataforma",data}}):await db.auth.signInWithPassword({email,password});
  setBusy(false);if(r.error)return toast(cleanError(r.error),"error");
- close();toast(authMode==="register"?"Registro recibido. Revisa tu correo para confirmar la cuenta y poder participar.":"Ingresaste correctamente. Tu universidad se asociará a tu cuenta, nunca a tus comentarios públicos.");
+ close();if(authMode==="login")navigatePlatform("profesores","");toast(authMode==="register"?"Registro recibido. Revisa tu correo para confirmar la cuenta y entrar a la plataforma.":"Ingresaste correctamente. Bienvenido a la plataforma: tu universidad nunca aparecerá junto a tus comentarios públicos.");
 }
  async function signInWithGoogle(){
  if(!googleOAuthConfigured)return toast("El acceso Google está pendiente de activar en Google Cloud y Supabase.","error");
  if(!db)return toast("El servicio de inicio de sesión no está listo.","error");
  setBusy(true);
- const {error}=await db.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin,scopes:"openid email profile"}});
+ const {error}=await db.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin+"/plataforma",scopes:"openid email profile"}});
  setBusy(false);if(error)toast("No se pudo iniciar con Google: "+cleanError(error),"error");
 }
  async function saveStudentProfile(e){
