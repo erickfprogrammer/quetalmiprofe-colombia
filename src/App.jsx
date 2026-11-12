@@ -7,7 +7,7 @@ const googleOAuthConfigured=import.meta.env.VITE_GOOGLE_OAUTH_ENABLED==="true";
 const TAGS=["Explica bacano","Califica justo","Es exigente","Responde dudas","Da buen material","Puntual","Muchos trabajos","Parciales difíciles","Se preocupa por aprender","Buena metodología"];
 const fmt=n=>Number(n||0).toFixed(1);
 const normalize=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
-const cleanError=e=>e?.message?.includes("already registered")?"Ese correo ya está registrado. Inicia sesión.":(e?.message||"Ocurrió un error. Intenta nuevamente.");
+const cleanError=e=>{const m=e?.message||"";if(/already registered|user already exists/i.test(m))return "Ese correo ya está registrado. Inicia sesión.";if(/email address not authorized/i.test(m))return "Los correos externos aún no están habilitados. Necesitamos configurar el SMTP de la plataforma.";if(/email not confirmed/i.test(m))return "Revisa tu correo y confirma tu cuenta antes de ingresar.";if(/provider is not enabled|unsupported provider/i.test(m))return "Google aún no está activado en la configuración del proyecto.";return m||"Ocurrió un error. Intenta nuevamente."};
 function Initial({name}){return <span className="avatar">{(name||"P").split(" ").filter(Boolean).slice(0,2).map(s=>s[0]).join("").toUpperCase()}</span>}
 function Score({value=0,compact=false}){return <span className={"score "+(value>=4?"score-good":value>0&&value<3?"score-low":"")}><Star size={compact?14:18} fill="currentColor"/>{value?fmt(value):"—"}</span>}
 function Stars({value,onChange,large=false}){return <div className={"stars "+(large?"stars-large":"")}>{[1,2,3,4,5].map(n=><button key={n} type="button" aria-label={n+" estrellas"} onClick={()=>onChange?.(n)} disabled={!onChange} className={n<=value?"picked":""}><Star size={large?30:23} fill={n<=value?"currentColor":"none"}/></button>)}</div>}
@@ -43,8 +43,8 @@ export default function App(){
  useEffect(()=>{if(admin&&modal==="admin")loadAdmin()},[admin,modal]);
  useEffect(()=>{
   let live=true;
-  if(!db||!user?.id){setStudentProfile(null);setProfileChecked(false);return;}
-  setProfileChecked(false);
+  if(!db||!user?.id){setStudentProfile(null);setProfileForm({university_code:"",study_program:"",semester:""});setProfileChecked(false);return;}
+  setStudentProfile(null);setProfileChecked(false);
   db.from("student_profiles").select("user_id,university_code,study_program,semester").eq("user_id",user.id).maybeSingle().then(({data,error})=>{
    if(!live)return;
    if(error){setFeedback({type:"error",text:"No se pudo consultar tu perfil académico: "+cleanError(error)});setProfileChecked(true);return;}
