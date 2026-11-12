@@ -36,7 +36,7 @@ const cardScore=(p,ratings)=>{const r=ratings.filter(x=>x.professor_id===p.id);r
 function ProfessorCard({professor,ratings,onClick}){const s=cardScore(professor,ratings);return <button className="prof-card" onClick={onClick}><div className="prof-top"><Initial name={professor.name}/><div className="prof-identity"><h3>{professor.name}</h3><p><School size={13}/>{professor.university_name}</p></div><ChevronRight size={19} className="prof-chevron"/></div><div className="prof-divider"/><div className="prof-bottom"><div><Score value={s.rating}/><span>{s.count===1?"1 opinión":s.count+" opiniones"}</span></div><div className="recommend"><ThumbsUp size={15}/>{s.count?s.recommend+"% recomiendan":"Sin calificar"}</div></div>{professor.campus&&<div className="campus"><MapPin size={12}/>{professor.campus}</div>}</button>}
 export default function App(){
  const [user,setUser]=useState(null),[inPlatform,setInPlatform]=useState(()=>window.location.pathname.startsWith("/plataforma")),[boot,setBoot]=useState(true),[teachers,setTeachers]=useState([]),[ratings,setRatings]=useState([]),[loading,setLoading]=useState(false),[q,setQ]=useState(""),[tab,setTab]=useState("profesores"),[uni,setUni]=useState(""),[showAllUnis,setShowAllUnis]=useState(false),[sort,setSort]=useState("relevancia"),[modal,setModal]=useState(""),[selected,setSelected]=useState(null),[authMode,setAuthMode]=useState("login"),[feedback,setFeedback]=useState(null),[busy,setBusy]=useState(false),[menu,setMenu]=useState(false),[adminData,setAdminData]=useState({professors:[],reviews:[],reports:[],students:[]}),[adminTab,setAdminTab]=useState("professors");
- const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[registerEmailMode,setRegisterEmailMode]=useState("institutional"),[institutionalEmail,setInstitutionalEmail]=useState(""),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
+ const [authForm,setAuthForm]=useState({email:"",password:"",university_code:"",study_program:"",semester:""}),[registerEmailMode,setRegisterEmailMode]=useState("institutional"),[institutionalEmail,setInstitutionalEmail]=useState(""),[pendingEmail,setPendingEmail]=useState(""),[profileForm,setProfileForm]=useState({university_code:"",study_program:"",semester:""}),[studentProfile,setStudentProfile]=useState(null),[profileChecked,setProfileChecked]=useState(false),[newProf,setNewProf]=useState({name:"",university_code:"",campus:""}),[uniTerm,setUniTerm]=useState(""),[review,setReview]=useState({course:"",period:"2026-2",score:0,difficulty:0,would_take_again:null,comment:"",tags:[]}),[report,setReport]=useState({review_id:"",reason:"Información falsa",detail:""}),[accepted,setAccepted]=useState(false);
  const admin=user?.app_metadata?.role==="admin"||user?.app_metadata?.role==="moderator";
  const sortedUnis=useMemo(()=>[...universities].sort((a,b)=>a.name.localeCompare(b.name,"es")) ,[]);
  const uniOptions=useMemo(()=>sortedUnis.filter(x=>normalize(x.name+" "+x.city).includes(normalize(uniTerm))).slice(0,8),[uniTerm,sortedUnis]);
@@ -86,8 +86,22 @@ export default function App(){
  const data={university_code:authForm.university_code,study_program:authForm.study_program.trim(),semester:authForm.semester||null};
  const r=authMode==="register"?await db.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+"/plataforma",data}}):await db.auth.signInWithPassword({email,password});
  setBusy(false);if(r.error)return toast(cleanError(r.error),"error");
- close();if(authMode==="login")navigatePlatform("profesores","");toast(authMode==="register"?"Registro recibido. Revisa tu correo para confirmar la cuenta y entrar a la plataforma.":"Ingresaste correctamente. Bienvenido a la plataforma: tu universidad nunca aparecerá junto a tus comentarios públicos.");
+ if(authMode==="register"){
+  setPendingEmail(email);
+  if(r.data?.session){navigatePlatform("profesores","");toast("¡Cuenta creada! Ya puedes entrar a la plataforma.");}
+  else setModal("checkEmail");
+ }else{
+  navigatePlatform("profesores","");toast("Ingresaste correctamente. Bienvenido a la plataforma: tu universidad nunca aparecerá junto a tus comentarios públicos.");
+ }
 }
+ async function resendSignupEmail(){
+  if(!db||!pendingEmail)return;
+  setBusy(true);
+  const {error}=await db.auth.resend({type:"signup",email:pendingEmail,options:{emailRedirectTo:window.location.origin+"/plataforma"}});
+  setBusy(false);
+  if(error)return toast("No se pudo reenviar el correo: "+cleanError(error),"error");
+  toast("Solicitud recibida. Revisa la bandeja de entrada y spam. Si tu cuenta ya fue confirmada, puedes iniciar sesión.");
+ }
  async function signInWithGoogle(){
  if(!googleOAuthConfigured)return toast("El acceso Google está pendiente de activar en Google Cloud y Supabase.","error");
  if(!db)return toast("El servicio de inicio de sesión no está listo.","error");
@@ -185,6 +199,15 @@ export default function App(){
  </>}
  <button disabled={busy||!configured||(authMode==="register"&&(!authForm.university_code||(registerEmailMode==="institutional"&&!matchUniversityEmail(authForm.email,authForm.university_code))))} className="btn btn-dark submit" type="submit">{busy?<Loader2 className="spin" size={18}/>:authMode==="register"?"Registrarme por correo":"Ingresar con correo"}<ArrowRight size={17}/></button>
  </form></Modal>}
+ {modal==="checkEmail"&&<Modal title="¡Revisa tu correo!" subtitle="Ya recibimos tu registro. Solo falta confirmar tu cuenta." onClose={close}>
+ <div className="signup-mail-state">
+  <div className="signup-mail-icon"><ShieldCheck size={32}/></div>
+  <p>Enviamos un enlace de confirmación a <b>{pendingEmail}</b>. Abre el mensaje de <b>Qué Tal Mi Profe</b> y confirma desde allí.</p>
+  <div className="soft-note"><LockKeyhole size={18}/>No necesitas crear una segunda cuenta. Si el enlace ya se utilizó, intenta iniciar sesión con la contraseña que elegiste.</div>
+  <button type="button" className="btn btn-dark submit" disabled={busy} onClick={resendSignupEmail}>{busy?<Loader2 className="spin" size={17}/>:<Send size={17}/>}Reenviar correo de confirmación</button>
+  <button type="button" className="signup-login-instead" onClick={()=>openLogin("login")}>Ya confirmé mi correo · Iniciar sesión <ArrowRight size={16}/></button>
+ </div>
+ </Modal>}
  {modal==="completeProfile"&&<Modal title={studentProfile?"Mi perfil universitario":"¿De qué universidad eres?"} subtitle="Tu universidad se guarda en tu cuenta, pero jamás aparece junto a tus reseñas públicas." onClose={close}>
  <div className="anon-privacy"><LockKeyhole size={21}/><div><b>Tu identidad queda oculta en las opiniones públicas</b><span>La universidad es privada y solo se utiliza para estadísticas de la comunidad y moderación autorizada. Declarar tu universidad no equivale a verificar matrícula.</span></div></div>
  <form onSubmit={saveStudentProfile} className="form">
