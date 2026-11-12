@@ -78,3 +78,11 @@
 .teacher-suggestions>small{display:block;font-size:10px;color:#879ca1;line-height:1.5}
 .duplicate-warning{display:flex;gap:8px;color:#92522c;border-radius:8px;background:#fff1e2;padding:10px;font-size:10px;line-height:1.7;margin:8px 0}
 @media(max-width:420px){.email-signup-switch button{font-size:10px}.verification-pending{flex-wrap:wrap}.verification-pending>button{margin-left:auto}}
+
+/* Email-confirmation onboarding */
+.signup-mail-state{display:flex;flex-direction:column;gap:16px}
+.signup-mail-icon{height:66px;width:66px;display:grid;place-items:center;background:#f4ecc9;color:#8b6e2f;border-radius:18px}
+.signup-mail-state>p{color:#637b84;line-height:1.8;font-size:13px;margin:0}
+.signup-mail-state>p b{color:#243d46;overflow-wrap:anywhere}
+.signup-login-instead{border:0;background:transparent;color:#3e6975;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px}
+.signup-login-instead:hover{color:#bd9047}
