@@ -33,6 +33,16 @@ El SMTP de prueba de Supabase limita el envío a direcciones autorizadas del equ
 Docs: https://supabase.com/docs/guides/auth/social-sign-in/auth-google y https://supabase.com/docs/guides/auth/auth-smtp
 
 
+## Experiencia web (12 nov 2026)
+
+La navegación ahora se divide en dos vistas que comparten el mismo proyecto, datos y dominio:
+
+- `/`: landing page pública de bienvenida. Presenta el propósito de la plataforma, un buscador de profesores y universidades, el flujo de uso, un ejemplo visual explícitamente ilustrativo, preguntas frecuentes y el enfoque de anonimato público. Permite iniciar sesión o registrarse en un modal sobre la propia landing.
+- `/plataforma`: el directorio y la aplicación de reseñas real, con filtros, fichas de profesores, solicitudes, calificaciones y el panel de moderación existente. Se puede explorar sin cuenta; para escribir reseñas o proponer docentes se requiere autenticación y perfil universitario.
+- Buscar desde la landing abre automáticamente la plataforma y conserva el texto y la categoría de búsqueda. El logo y la ruta de navegación devuelven al inicio. Las URLs directas funcionan mediante rewrites SPA en Vercel.
+- El diseño de la landing es original, toma como inspiración las buenas prácticas de descubrimiento de plataformas de valoración de profesores, sin reutilizar logos, nombres, imágenes, textos ni otros activos de Rate My Professors.
+- El catálogo universitario sigue siendo un conjunto de registros de sedes e instituciones, no un directorio exhaustivo de docentes. La experiencia muestra estados vacíos reales, sin reseñas artificiales.
+
 ## Funciones MVP
 - 361 registros de instituciones y sedes del Ministerio de Educación/SNIES (snapshot del archivo Datos Abiertos; corte de datos previo a 2026).
 - Búsqueda por nombre, universidad, ciudad o departamento.
