@@ -3,6 +3,7 @@ import{Search,GraduationCap,ArrowRight,Star,ShieldCheck,BookOpen,Menu,X,Plus,Log
 import universities from"./universities.json";
 import{db,configured}from"./supabase";
 
+const googleOAuthConfigured=import.meta.env.VITE_GOOGLE_OAUTH_ENABLED==="true";
 const TAGS=["Explica bacano","Califica justo","Es exigente","Responde dudas","Da buen material","Puntual","Muchos trabajos","Parciales difíciles","Se preocupa por aprender","Buena metodología"];
 const fmt=n=>Number(n||0).toFixed(1);
 const normalize=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
@@ -67,6 +68,7 @@ export default function App(){
  close();toast(authMode==="register"?"Registro recibido. Revisa tu correo para confirmar la cuenta y poder participar.":"Ingresaste correctamente. Tu universidad se asociará a tu cuenta, nunca a tus comentarios públicos.");
 }
  async function signInWithGoogle(){
+ if(!googleOAuthConfigured)return toast("El acceso Google está pendiente de activar en Google Cloud y Supabase.","error");
  if(!db)return toast("El servicio de inicio de sesión no está listo.","error");
  setBusy(true);
  const {error}=await db.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin,scopes:"openid email profile"}});
@@ -98,7 +100,8 @@ export default function App(){
  {!configured&&<div className="setup-banner"><Settings2 size={18}/><div><b>Versión de demostración.</b> El directorio funciona, pero el registro y las opiniones requieren conectar la base de datos Supabase.</div></div>}
  {modal==="auth"&&<Modal title={authMode==="register"?"Únete a la comunidad":"¡Qué bueno verte!"} subtitle={authMode==="register"?"Regístrate con Google o correo. Tus opiniones serán públicas, pero tu identidad no.":"Inicia sesión y sigue ayudando a otros estudiantes."} onClose={close}>
  <div className="anon-privacy"><ShieldCheck size={21}/><div><b>Tus comentarios son siempre anónimos para otros usuarios</b><span>Tu nombre, correo y universidad NO se muestran junto a tus reseñas. Los moderadores pueden consultar datos internos para proteger la comunidad.</span></div></div>
- <button type="button" className="google-auth-button" disabled={busy||!configured} onClick={signInWithGoogle}><span className="google-g">G</span> Continuar con Google <ArrowRight size={16}/></button>
+ <button type="button" className="google-auth-button" disabled={busy||!configured||!googleOAuthConfigured} onClick={signInWithGoogle}><span className="google-g">G</span> Continuar con Google <ArrowRight size={16}/></button>
+ {!googleOAuthConfigured&&<p className="provider-note">Google está preparado, pero su activación está pendiente de conectar credenciales OAuth al proyecto.</p>}
  <div className="auth-separator"><span>o continúa con tu correo</span></div>
  <div className="auth-tabs"><button className={authMode==="login"?"active":""} onClick={()=>setAuthMode("login")}>Ingresar</button><button className={authMode==="register"?"active":""} onClick={()=>setAuthMode("register")}>Crear cuenta</button></div>
  <form onSubmit={submitAuth} className="form">
