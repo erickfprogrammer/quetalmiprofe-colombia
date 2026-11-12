@@ -1,0 +1,44 @@
+[
+  {
+    "domain": "estudiantes.areandina.edu.co",
+    "parent_code": "2728",
+    "kind": "student_domain",
+    "label": "Areandina · correo estudiantil"
+  },
+  {
+    "domain": "areandina.edu.co",
+    "parent_code": "2728",
+    "kind": "institutional",
+    "label": "Areandina · correo institucional"
+  },
+  {
+    "domain": "unicesar.edu.co",
+    "parent_code": "1120",
+    "kind": "institutional",
+    "label": "Universidad Popular del Cesar"
+  },
+  {
+    "domain": "unal.edu.co",
+    "parent_code": "1101",
+    "kind": "institutional",
+    "label": "Universidad Nacional de Colombia"
+  },
+  {
+    "domain": "udea.edu.co",
+    "parent_code": "1201",
+    "kind": "institutional",
+    "label": "Universidad de Antioquia"
+  },
+  {
+    "domain": "uninorte.edu.co",
+    "parent_code": "1713",
+    "kind": "institutional",
+    "label": "Universidad del Norte"
+  },
+  {
+    "domain": "uniandes.edu.co",
+    "parent_code": "1813",
+    "kind": "institutional",
+    "label": "Universidad de los Andes"
+  }
+]
