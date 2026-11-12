@@ -41,3 +41,5 @@
 .stat-track i{display:block;background:#66a8bc;height:100%;border-radius:99px}
 .student-stat-row strong{font-size:15px;color:#285775}
 @media(max-width:720px){.mobile-only{display:block}.stat-intro{align-items:flex-start;flex-direction:column}.stat-big{align-items:flex-start}.google-auth-button{min-height:47px}.admin-tabs{flex-wrap:wrap}}
+
+.provider-note{font-size:10px;line-height:1.6;color:#875f2b;background:#fff6e9;border-radius:8px;margin:-12px 0 16px;padding:9px 11px}
